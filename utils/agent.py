@@ -10,7 +10,6 @@ from utils.db import run_sql
 
 load_dotenv()
 
-# Vertex settings
 safety_settings = {
     HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
@@ -55,7 +54,7 @@ def generate_chart(df, x, y, chart_type="bar"):
         wedges, texts, autotexts = plt.pie(
             df[y], labels=df[x], autopct="%1.1f%%", startangle=90
         )
-        # Draw circle in center
+       
         centre_circle = plt.Circle((0, 0), 0.70, fc='white')
         plt.gca().add_artist(centre_circle)
         plt.title(f"{y} distribution by {x} (Donut Chart)")
@@ -85,13 +84,13 @@ def ai_agent(user_query):
     prompt = AGENT_PROMPT.format(query=user_query)
     response = llm.invoke(prompt).content.strip()
 
-    # GRAPH REQUEST
+    
        
     if response.startswith("GRAPH_REQUEST"):
         sql = response.replace("GRAPH_REQUEST:", "").strip()
         df = run_sql(sql)
 
-        # Detect chart type from user query
+        
         query_lower = user_query.lower()
         if "donut" in query_lower or "doughnut" in query_lower:
             chart_type = "donut"
@@ -107,7 +106,7 @@ def ai_agent(user_query):
 
 
 
-    # SUMMARY REQUEST
+    
     if response.startswith("SUMMARY_REQUEST"):
         sql = response.replace("SUMMARY_REQUEST:", "").strip()
         df = run_sql(sql)
@@ -115,16 +114,16 @@ def ai_agent(user_query):
         summary = llm.invoke("Summarize this:\n" + text).content
         return {"type": "summary", "summary": summary}
 
-    # SQL REQUEST (handle "SQL:" prefix)
+   
     if response.startswith("SQL:"):
         sql = response.replace("SQL:", "").strip()
         df = run_sql(sql)
         return {"type": "table", "rows": df.to_dict(orient="records")}
 
-    # Pure SQL query (without prefix)
+    
     if response.lower().startswith("select"):
         df = run_sql(response)
         return {"type": "table", "rows": df.to_dict(orient="records")}
 
-    # General AI reply
+   
     return {"type": "text", "response": response}
