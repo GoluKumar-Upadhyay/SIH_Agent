@@ -428,10 +428,14 @@
           formattedText += `<p style="margin-bottom: 0.5rem;"><strong>Stakeholder:</strong> ${row.Stackholder}</p>`;
         }
         
-        if (row.sentiment_score !== undefined) {
-          const sentiment = row.sentiment_score > 0.6 ? 'Positive' : row.sentiment_score > 0.4 ? 'Neutral' : 'Negative';
-          const sentimentColor = row.sentiment_score > 0.6 ? '#10b981' : row.sentiment_score > 0.4 ? '#f59e0b' : '#ef4444';
-          formattedText += `<p style="margin-bottom: 0.5rem;"><strong>Sentiment:</strong> <span style="color: ${sentimentColor};">${sentiment} (${(row.sentiment_score * 100).toFixed(1)}%)</span></p>`;
+                // Display sentiment from database (not calculated)
+        if (row.sentiment) {
+          const sentiment = row.sentiment; // Use actual database value
+          const sentimentColor = sentiment === 'Positive' ? '#10b981' : 
+                                sentiment === 'Negative' ? '#ef4444' : 
+                                '#f59e0b';
+          const scoreText = row.sentiment_score ? ` (${(row.sentiment_score * 100).toFixed(1)}%)` : '';
+          formattedText += `<p style="margin-bottom: 0.5rem;"><strong>Sentiment:</strong> <span style="color: ${sentimentColor};">${sentiment}${scoreText}</span></p>`;
         }
         
         if (row.Comments) {
@@ -441,7 +445,7 @@
         
         // Handle any other fields
         Object.keys(row).forEach(key => {
-          if (key !== 'Comments' && key !== 'Stackholder' && key !== 'sentiment_score') {
+          if (key !== 'Comments' && key !== 'Stackholder' && key !== 'sentiment_score'&& key !== 'sentiment') {
             formattedText += `<p style="margin-top: 0.5rem;"><strong>${key}:</strong> ${row[key]}</p>`;
           }
         });
