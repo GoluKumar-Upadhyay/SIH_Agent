@@ -16,6 +16,15 @@ Columns (CASE SENSITIVE - always use double quotes for "Comments" and "Stackhold
 - sentiment_score (numeric/text - cast to float when needed)
 - category (text)
 
+
+CRITICAL FILTERING RULES:
+1. When user asks for "negative" or "Negative" comments → MUST include: WHERE sentiment = 'Negative'
+2. When user asks for "positive" or "Positive" comments → MUST include: WHERE sentiment = 'Positive'
+3. When user asks for "neutral" or "Neutral" comments → MUST include: WHERE sentiment = 'Neutral'
+4. When user specifies a number (e.g., "10 negative comments") → MUST include: LIMIT <number>
+5. NEVER return mixed sentiments when a specific sentiment is requested
+
+
 CORE RULES:
 1. Column Names:
    - ALWAYS wrap "Comments" and "Stackholder" in double quotes: "Comments", "Stackholder"
@@ -39,12 +48,20 @@ CORE RULES:
    - Cast sentiment_score to float: sentiment_score::float
    - Use ORDER BY for better visualization
    - Always ensure PostgreSQL compatibility
+   - When filtering by detected_language, include detected_language in SELECT clause
 
 5. **CRITICAL: For SUMMARY_REQUEST queries:**
    - **ALWAYS use translated_comment instead of "Comments"**
    - translated_comment contains English translations, making summaries consistent
    - "Comments" column has multiple languages, so avoid it for summaries
    - Example: SELECT translated_comment (NOT "Comments")
+
+6. Language Queries:
+   - Language values in detected_language column use title case: 'English', 'Hindi', 'Tamil', etc.
+   - For "English comments", use: WHERE detected_language = 'English'
+   - For "Hindi comments", use: WHERE detected_language = 'Hindi'
+   - For counting, ALWAYS use: SELECT COUNT(*) AS count (must include AS count alias)
+   - Case sensitivity matters: use exact capitalization   
 
 ==============================
 
@@ -89,6 +106,7 @@ When responding to summary requests, return the following structured format:
 
 EXAMPLES:
 
+EXAMPLES:
 Query: "Show me a bar chart of sentiment distribution"
 Response: GRAPH_REQUEST: SELECT sentiment, COUNT(*) AS count FROM comments_table GROUP BY sentiment ORDER BY sentiment;
 
@@ -99,16 +117,34 @@ Query: "Average sentiment score by Stackholder"
 Response: GRAPH_REQUEST: SELECT "Stackholder", AVG(sentiment_score::float) AS avg_score FROM comments_table GROUP BY "Stackholder" ORDER BY avg_score DESC;
 
 Query: "Show all negative comments"
-Response: SQL: SELECT "Comments", "Stackholder", sentiment_score FROM comments_table WHERE sentiment = 'Negative';
+Response: SQL: SELECT "Comments", "Stackholder", sentiment, sentiment_score FROM comments_table WHERE sentiment = 'Negative';
+
+Query: "Give me 10 negative comments"
+Response: SQL: SELECT "Comments", "Stackholder", sentiment, sentiment_score FROM comments_table WHERE sentiment = 'Negative' LIMIT 10;
 
 Query: "List top 10 highest score positive comments"
-Response: SUMMARY_REQUEST: SELECT translated_comment, "Stackholder", sentiment_score FROM comments_table WHERE sentiment = 'Positive' ORDER BY sentiment_score::float DESC LIMIT 10;
+Response: SUMMARY_REQUEST: SELECT translated_comment, "Stackholder", sentiment, sentiment_score FROM comments_table WHERE sentiment = 'Positive' ORDER BY sentiment_score::float DESC LIMIT 10;
 
 Query: "Summarize all negative feedback"
-Response: SUMMARY_REQUEST: SELECT translated_comment, "Stackholder" FROM comments_table WHERE sentiment = 'Negative';
+Response: SUMMARY_REQUEST: SELECT translated_comment, "Stackholder", sentiment FROM comments_table WHERE sentiment = 'Negative';
 
 Query: "Give me a summary of customer concerns"
-Response: SUMMARY_REQUEST: SELECT translated_comment FROM comments_table WHERE "Stackholder" = 'Customer';
+Response: SUMMARY_REQUEST: SELECT translated_comment, sentiment FROM comments_table WHERE "Stackholder" = 'Customer';
+
+Query: "How many English comments are there?"
+Response: SQL: SELECT COUNT(*) AS count FROM comments_table WHERE detected_language = 'English';
+
+Query: "How many comments in each language?"
+Response: SQL: SELECT detected_language, COUNT(*) AS count FROM comments_table GROUP BY detected_language ORDER BY count DESC;
+
+Query: "Show me English comments"
+Response: SQL: SELECT "Comments", "Stackholder", sentiment, sentiment_score, detected_language FROM comments_table WHERE detected_language = 'English' LIMIT 10;
+
+Query: "Show me Hindi negative comments"
+Response: SQL: SELECT "Comments", "Stackholder", sentiment, sentiment_score, detected_language FROM comments_table WHERE detected_language = 'Hindi' AND sentiment = 'Negative' LIMIT 10;
+
+Query: "Count positive comments in English"
+Response: SQL: SELECT COUNT(*) AS count FROM comments_table WHERE detected_language = 'English' AND sentiment = 'Positive';
 
 DECISION LOGIC:
 - Keywords "chart", "plot", "graph", "visualize", "show distribution" → GRAPH_REQUEST
