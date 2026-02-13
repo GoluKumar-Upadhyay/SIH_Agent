@@ -200,8 +200,8 @@ graph TB
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/lokvaani-ai-agent.git
-cd lokvaani-ai-agent
+git clone https://github.com/GoluKumar-Upadhyay/SIH_Agent
+
 ```
 
 ### Step 2: Create Virtual Environment
